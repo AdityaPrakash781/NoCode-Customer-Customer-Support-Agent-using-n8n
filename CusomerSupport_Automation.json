@@ -1,0 +1,1188 @@
+{
+  "name": "Customer Support Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        -16
+      ],
+      "id": "ff61db54-d158-4333-a0d2-7477f72a1c1c",
+      "name": "Telegram Trigger",
+      "webhookId": "21ca5d28-bf5c-4d66-9e20-e403acc4ffc0",
+      "credentials": {
+        "telegramApi": {
+          "id": "GRDrT8pWsJObjzPQ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Chat History",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Chat Index",
+              "lookupValue": "={{ $json.message.chat.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        -16
+      ],
+      "id": "663e9b44-2944-4142-a353-0eaa8a0c4965",
+      "name": "Get Chat History",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7wisQbI7mJa6UYht",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d266458d-0524-4c8a-a6d3-b8eef52972d5",
+              "name": "Human Message",
+              "value": "={{ $json['Human Message'] }}",
+              "type": "string"
+            },
+            {
+              "id": "e93904de-3d66-45f8-a8a2-70cd2ce260f8",
+              "name": "AI Response",
+              "value": "={{ $json['AI Response'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        -16
+      ],
+      "id": "959c4e4f-d624-41d7-a573-fec375a5178c",
+      "name": "Filter AI and Human Response"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -16
+      ],
+      "id": "0cead934-4886-45cc-ae1f-41e798fe336b",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Chat History:\n\n{{JSON.stringify($json.data) }}\n\nCurrent Message:\n\n{{ $('Telegram Trigger').item.json.message.text }}",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=You are a customer support assistant. Your job is to analyze the user's query and determine which type of conversation it belongs to. You will have access to the chat history, so always use the previous chat to gather details and ask to user for any detail not available in previous chat.\n\nCheck if user has provided the following details:\n\nTheir phone number\n\nTheir email id\n\nIf not, then ask the user for the details. When asking, you must structure your request in a professional, formal, and friendly manner over multiple lines to express a clear willingness to help. For example:\n\n\"Hello, I'd be happy to assist you with that.\n\nTo securely access your details and provide the best support, could you please help me with the following information?\n\nYour phone number\n\nYour email address\n\nThank you!\"\n\nAfter that proceed to classify the query into one of these types:\n\nRefund\n\nSeat Transfer\n\nMiscellaneous\n\nRules for each type:\n\nRefund: If the user asks for a refund, politely inform them that refunds are unavailable, but they can transfer their seat to another candidate. Then guide them to provide seat transfer details.\n\nSeat Transfer: If the query involves a request to initiate a seat transfer, inform the user that refunds are not available, but the seat can be transferred. Collect or verify the following details, requesting any missing information politely:\n\nUser's email ID\n\nUser's phone number\n\nTransferee's name\n\nTransferee's email ID\n\nTransferee's phone number\n\nOnce all details are provided, respond only with: initiate_seat_transfer\n\nMiscellaneous: If the query does not fit the Refund or Seat Transfer types (for example, if the user asks if their seat is transferred, or has any other general question), ask the user if they have anything more to share or any additional details about their issue. Also add if the user does not have any more information to share, simply write no. Only after the user confirms they have explained everything fully, respond exactly with: miscellaneous"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -16
+      ],
+      "id": "60b017ac-f3e6-42ee-b03a-48e22c91b51c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        608,
+        224
+      ],
+      "id": "9a8ea9c7-f6d5-4f2e-834e-f20a64426fe8",
+      "name": "Fallback Model",
+      "credentials": {
+        "groqApi": {
+          "id": "iu2LVXqXoZ0PKq2q",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        496,
+        224
+      ],
+      "id": "f8c68fb0-51d6-4ef1-87ae-7f354de39259",
+      "name": "Main",
+      "credentials": {
+        "groqApi": {
+          "id": "iu2LVXqXoZ0PKq2q",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d461a4cb-a902-446c-8930-9cf333ebde89",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "miscellaneous",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "afa46b5e-741c-4fb0-8bb3-06162c0fc48a",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "initiate_seat_transfer",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9ee9bb51-3b3a-4cbc-b5bb-17d24c1262f4",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "^(miscellaneous|initiate_seat_transfer)$",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notRegex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        1056,
+        -32
+      ],
+      "id": "f54bc82e-9691-4f15-9f64-924e0f905c0b",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('AI Agent').item.json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1472,
+        400
+      ],
+      "id": "5b27423f-5d82-4caa-9680-4147aa480c3e",
+      "name": "Send a text message",
+      "webhookId": "12bb6cf6-cb71-45f1-8b3f-d72cf166bca2",
+      "credentials": {
+        "telegramApi": {
+          "id": "GRDrT8pWsJObjzPQ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Chat History",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Chat Index": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+            "Human Message": "={{ $('Telegram Trigger').item.json.message.text }}",
+            "AI Response": "={{ $json.result.text }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Chat Index",
+              "displayName": "Chat Index",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Human Message",
+              "displayName": "Human Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Response",
+              "displayName": "AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        4880,
+        432
+      ],
+      "id": "e2f90999-8f51-4c04-a8c6-800c9446b394",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7wisQbI7mJa6UYht",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Aggregate').item.json.data}}",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "You are a helpful customer support assistant. Your task is to extract the details of the user and summarize user's issue description in clear and concise language, suitable for use as a support ticket description query using the chat history.\n\nYour output will be in the following format:\n{ \n    ticket_summary: <Summary of the user's issue>\n    phone_number: <User's phone number>\n    email: <User's email> \n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1424,
+        -400
+      ],
+      "id": "2d877ab0-8967-488c-9f84-8a087ba9744f",
+      "name": "Summarizer",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1360,
+        -208
+      ],
+      "id": "fcfd7f8f-25d6-4896-ae9f-0f1f217f4eb5",
+      "name": "Main_Summarizer",
+      "credentials": {
+        "openAiApi": {
+          "id": "wlMjvG5NX0tVK2xx",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1456,
+        -208
+      ],
+      "id": "0836dbea-1287-4077-987a-ad7fed3d5ea6",
+      "name": "Fallback_Summarizer",
+      "credentials": {
+        "groqApi": {
+          "id": "iu2LVXqXoZ0PKq2q",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputString = $input.first().json.output ;\n\n// This creates a new function and executes it, \n// returning the object.\nconst jsonObject = (new Function(\"return \" + inputString))();\n\n// 'jsonObject' is now a real JavaScript object\n// n8n will automatically output this as JSON\nreturn jsonObject;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1808,
+        -400
+      ],
+      "id": "bdb816e4-6283-41d8-aa2b-de98ca9b0da3",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "chatId": "6924192750",
+        "text": "=A new ticket has been created :\n{{ $json.ticket_summary }}\n\nPhone Number: {{ $json.phone_number }}\nEmail ID: {{ $json.email }}\nThe ticket has been added to the spreadsheet.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2352,
+        -400
+      ],
+      "id": "4c1b33fe-1600-4e35-b475-76c3217bcead",
+      "name": "Text Message to Admin",
+      "webhookId": "9af2241d-c3a2-4263-9ed0-2adbe3ddaf77",
+      "credentials": {
+        "telegramApi": {
+          "id": "GRDrT8pWsJObjzPQ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "=A ticket has been generated . A member from our support team will get back to you shortly.\nFor the ticket:\n{{ $('Code in JavaScript').item.json.ticket_summary }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4432,
+        -384
+      ],
+      "id": "9e3fab54-dad8-4530-890c-fcf09416df45",
+      "name": "Text Message to the User",
+      "webhookId": "28705b9e-3101-4331-9a10-06fb72e18d40",
+      "credentials": {
+        "telegramApi": {
+          "id": "GRDrT8pWsJObjzPQ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1550536983,
+          "mode": "list",
+          "cachedResultName": "Customer Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU/edit#gid=1550536983"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Email ID",
+              "lookupValue": "={{ $json.user_email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2224,
+        -16
+      ],
+      "id": "58f2512b-5da7-49c8-8135-a798e47493d4",
+      "name": "Get row(s) in sheet",
+      "executeOnce": false,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7wisQbI7mJa6UYht",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Aggregate').item.json.data }}  \n\n{{ $('Telegram Trigger').item.json.message.text }}",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "You are a data extraction assistant. Your task is to extract data from the chat history provided to you.\n\nYou are to extract the following information:\n\nuser's email id\n\nuser's phone number\n\ntransferee's name\n\ntransferee's email id\n\ntransferee's phone number\n\nYou will output the data in the following format json only:\n\n{\n     \"user_email\": <Replace with user's email>,\n     \"user_phone_number\": <Replace with user's phone number>,\n     \"transferee_name\": <Replace with transferee's name>,\n     \"transferee_email\": <Replace with transferee's email>,\n     \"transferee_phone_number\": <Replace with transferee's phone number>,\n }"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1536,
+        -16
+      ],
+      "id": "0f1ae2ad-f28d-4557-943a-ae3f2fb1e226",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        224
+      ],
+      "id": "da792a31-bef1-40a5-ba6a-5d90e69aee6c",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "iu2LVXqXoZ0PKq2q",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        224
+      ],
+      "id": "3af6ba76-516c-4331-883a-2aef8d5a94c8",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "iu2LVXqXoZ0PKq2q",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputString = $input.first().json.output ;\n\n// This creates a new function and executes it, \n// returning the object.\nconst jsonObject = (new Function(\"return \" + inputString))();\n\n// 'jsonObject' is now a real JavaScript object\n// n8n will automatically output this as JSON\nreturn jsonObject;// Loop over input items and add a new field called 'myNewField' to "
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        -16
+      ],
+      "id": "dc28b045-fc78-4f3d-9e94-b29a09812d3c",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b6368555-ea44-4f9d-b6d2-c2e0c7e5b20a",
+              "leftValue": "={{ $json['Email ID'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2480,
+        -16
+      ],
+      "id": "8857d4e9-21c1-4592-aea2-8944e56b4f33",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "={{ $json['Email ID'] }}",
+        "subject": "Seat Transfer Inititated . Confirmation Email .",
+        "message": "=You have initiated a seat transfer to -\nName: {{ $('Code in JavaScript1').item.json.transferee_name }}\nEmail: {{ $('Code in JavaScript1').item.json.transferee_email }}\nPhoneNumber: {{ $('Code in JavaScript1').item.json.transferee_phone_number }}\n",
+        "approvalOptions": {
+          "values": {
+            "approveLabel": "Confirm"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2784,
+        -144
+      ],
+      "id": "8c320f6f-e335-4623-8a3c-d576b304dba8",
+      "name": "Send message and wait for response",
+      "webhookId": "e5e8de1b-4819-4a94-95f9-8dbdb8d14e78",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "OhNIo2dqnKrFQhwg",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ac6fec17-7e7e-4d30-a08d-a36aa16aa219",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3072,
+        -144
+      ],
+      "id": "7ff1fade-dc2b-4d6b-9877-76ee19e33cc5",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "={{ $('Code in JavaScript1').item.json.transferee_email }}",
+        "subject": "=Send Transfer for the event by {{ $('Get row(s) in sheet').item.json.Name }}",
+        "message": "=Please confirm your details:\nName: {{ $('Code in JavaScript1').item.json.transferee_name }}\nEmail ID: {{ $('Code in JavaScript1').item.json.transferee_email }}\nPhone Number:  {{ $('Code in JavaScript1').item.json.transferee_phone_number }}",
+        "approvalOptions": {
+          "values": {
+            "approveLabel": "Confirm Seat Transfer"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3424,
+        -160
+      ],
+      "id": "d1861b1e-0f35-4e1a-bb14-063cd5ad0772",
+      "name": "Send message and wait for response1",
+      "webhookId": "ed429437-ecd2-4028-9e24-c5d78400a14a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "OhNIo2dqnKrFQhwg",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1550536983,
+          "mode": "list",
+          "cachedResultName": "Customer Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU/edit#gid=1550536983"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('Code in JavaScript1').item.json.transferee_name }}",
+            "Email ID": "={{ $('Code in JavaScript1').item.json.transferee_email }}",
+            "Phone Number": "={{ $('Code in JavaScript1').item.json.transferee_phone_number }}",
+            "Seat Status ": "={{ $('Get row(s) in sheet').item.json['Seat Status']}}",
+            "Remarks": "Seat Transfeered From  {{  $('Get row(s) in sheet').item.json['Email ID'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email ID",
+              "displayName": "Email ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Seat Status ",
+              "displayName": "Seat Status ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Remarks",
+              "displayName": "Remarks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3632,
+        -160
+      ],
+      "id": "be22e592-764f-4462-953b-917ceb955ac9",
+      "name": "Append row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7wisQbI7mJa6UYht",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1550536983,
+          "mode": "list",
+          "cachedResultName": "Customer Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GovyJUSFalLnEBjBDr8A1UK7PHvTPZGq0vQ9vcvUacU/edit#gid=1550536983"
+        },
+        "startIndex": "={{ $('Get row(s) in sheet').item.json.row_number }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3840,
+        -160
+      ],
+      "id": "04136d97-c145-4d25-b86e-b28ba4d3d2f0",
+      "name": "Delete rows or columns from sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7wisQbI7mJa6UYht",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Hey  {{ $('Get row(s) in sheet').item.json.Name }} , \nYour Seat has been transferred to  {{ $('Code in JavaScript1').item.json.transferee_name }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4096,
+        -160
+      ],
+      "id": "aec3c1ce-77b1-42dd-b503-66d9e3ff509a",
+      "name": "Send a text message1",
+      "webhookId": "9cddefb1-94d2-4317-b56b-faa60d9654fd",
+      "credentials": {
+        "telegramApi": {
+          "id": "GRDrT8pWsJObjzPQ",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Chat History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chat History": {
+      "main": [
+        [
+          {
+            "node": "Filter AI and Human Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter AI and Human Response": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Main": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Summarizer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Main_Summarizer": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarizer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback_Summarizer": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarizer",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Summarizer": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Text Message to Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Message to Admin": {
+      "main": [
+        [
+          {
+            "node": "Text Message to the User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Message to the User": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Delete rows or columns from sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete rows or columns from sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "45386daf-90da-4c6e-a049-699abc09fdf4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7ae12f08beeb63a4f1155702fc06758a53664fba5e4b40bfb1980afc404436ce"
+  },
+  "id": "X0zncXbo0mhUFB2E",
+  "tags": []
+}
